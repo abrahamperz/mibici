@@ -1,0 +1,15 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+dist/
+.env
+!.env.example
+.venv/
+venv/
+*.csv
+.claude/
+.idea/
+.vscode/
+*.swp
+*.swo

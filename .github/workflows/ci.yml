@@ -1,0 +1,22 @@
+name: Integration Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set rate limit for tests
+        run: sed -i 's/RATE_LIMIT_MAX=15/RATE_LIMIT_MAX=99999/' ./backend/.env.example
+
+      - name: Start services
+        run: docker compose up -d --build --wait
+
+      - name: Run tests
+        run: docker compose exec api pytest -v --tb=short -s
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v

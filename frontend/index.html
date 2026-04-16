@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiBici - Mapa de Estaciones</title>
+  <link rel="icon" href="/favicon.ico?v=2" type="image/x-icon">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.googleapis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({key:"__GOOGLE_MAPS_KEY__",v:"weekly"});</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f5f5f5; }
+
+    /* Header */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: #fff; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    .header .logo {
+      font-size: 24px; font-weight: 700; color: #333; letter-spacing: -0.5px;
+    }
+    .header .logo span { color: #22c55e; }
+    .header nav { display: flex; align-items: center; gap: 24px; }
+    .header nav a {
+      text-decoration: none; color: #666; font-size: 13px; font-weight: 500;
+      transition: color .15s;
+    }
+    .header nav a:hover { color: #22c55e; }
+    .header .api-link {
+      background: #22c55e; color: #fff !important; padding: 6px 16px;
+      border-radius: 6px; font-size: 12px; font-weight: 600;
+    }
+    .header .api-link:hover { background: #16a34a; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    /* Hamburger */
+    .hamburger {
+      width: 36px; height: 36px; border: none; background: none; cursor: pointer;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+      padding: 4px; border-radius: 8px; transition: background .15s;
+    }
+    .hamburger:hover { background: #f0f0f0; }
+    .hamburger span {
+      display: block; width: 20px; height: 2px; background: #333;
+      border-radius: 1px; transition: all .2s;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 56px; left: 0; bottom: 0; width: 340px;
+      background: #fff; z-index: 999;
+      box-shadow: 2px 0 12px rgba(0,0,0,.08);
+      overflow-y: auto;
+    }
+
+    /* Sidebar panels */
+    .sidebar-panel { padding: 20px; display: none; }
+    .sidebar-panel.active { display: block; }
+    .sidebar-panel h3 {
+      font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px;
+    }
+    .sidebar-panel label {
+      display: block; font-size: 12px; font-weight: 500; color: #666;
+      margin-bottom: 6px; margin-top: 12px;
+    }
+    .sidebar-panel label:first-of-type { margin-top: 0; }
+    .sidebar-panel input, .sidebar-panel select {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-family: inherit; font-size: 13px; outline: none; transition: border .15s;
+    }
+    .sidebar-panel input:focus, .sidebar-panel select:focus { border-color: #22c55e; }
+    .sidebar-panel .btn {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-top: 16px; transition: all .15s;
+    }
+    .btn-green { background: #22c55e; color: #fff; }
+    .btn-green:hover { background: #16a34a; }
+    .btn-red { background: #ef4444; color: #fff; }
+    .btn-red:hover { background: #dc2626; }
+    .btn-blue { background: #3b82f6; color: #fff; }
+    .btn-blue:hover { background: #2563eb; }
+    .sidebar-panel .result-box {
+      margin-top: 16px; padding: 12px; background: #f9fafb; border-radius: 8px;
+      font-size: 13px; color: #333; display: none;
+    }
+    .sidebar-panel .result-box.show { display: block; }
+    .result-box .result-item {
+      padding: 8px 0; border-bottom: 1px solid #eee;
+    }
+    .result-box .result-item:last-child { border-bottom: none; }
+    .result-box .result-name { font-weight: 600; font-size: 13px; }
+    .result-box .result-meta { font-size: 11px; color: #888; margin-top: 2px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    /* Search mode tabs */
+    .search-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+    .search-tab {
+      flex: 1; padding: 10px 6px; border: 1.5px solid #e5e5e5; border-radius: 10px;
+      background: #fff; font-family: inherit; font-size: 11px; font-weight: 600;
+      color: #666; cursor: pointer; text-align: center; transition: all .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .search-tab .tab-icon { font-size: 20px; }
+    .search-tab:hover { border-color: #22c55e; color: #22c55e; }
+    .search-tab.active { border-color: #22c55e; background: #f0fdf4; color: #22c55e; }
+    .search-mode { display: none; }
+    .search-mode.active { display: block; }
+    #map.drawing { cursor: crosshair !important; }
+    .mode-hint {
+      font-size: 13px; color: #999; text-align: center; padding: 0; margin: 0;
+    }
+    .mode-hint.done { color: #22c55e; }
+    .btn-clear {
+      display: none; width: 100%; padding: 8px; margin-top: 10px; border: 1px solid #e5e5e5;
+      border-radius: 8px; background: #fff; font-family: inherit; font-size: 12px;
+      color: #999; cursor: pointer; transition: all .15s;
+    }
+    .btn-clear:hover { border-color: #ccc; color: #666; }
+    .btn-clear.show { display: block; }
+
+    /* Address autocomplete dropdown */
+    .addr-wrap { position: relative; }
+    .addr-list {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+      background: #fff; border: 1px solid #e5e5e5; border-top: none;
+      border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,.1); display: none;
+    }
+    .addr-list.show { display: block; }
+    .addr-item {
+      padding: 10px 12px; font-size: 13px; color: #333; cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .addr-item:last-child { border-bottom: none; }
+    .addr-item:hover { background: #f0fdf4; }
+    .addr-item small { display: block; font-size: 11px; color: #999; margin-top: 1px; }
+
+    .sidebar-panel .msg {
+      margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; display: none;
+    }
+    .msg.success { display: block; background: #f0fdf4; color: #16a34a; }
+    .msg.error { display: block; background: #fef2f2; color: #dc2626; }
+
+    /* Floating mode toggle (mobile) */
+    .map-mode-toggle {
+      display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 1001; background: #fff; border-radius: 50px;
+      padding: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+      gap: 0;
+    }
+    .map-mode-toggle.visible { display: flex; }
+    .map-mode-toggle button {
+      border: none; background: none; padding: 10px 20px; border-radius: 50px;
+      font-family: inherit; font-size: 13px; font-weight: 600; color: #888;
+      cursor: pointer; transition: all .15s;
+    }
+    .map-mode-toggle button.active {
+      background: #3b82f6; color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,.3);
+    }
+
+    /* Map */
+    #map {
+      position: fixed; top: 56px; left: 340px; right: 0; bottom: 0;
+      width: calc(100vw - 340px); height: calc(100vh - 56px);
+    }
+
+    /* Leaflet popup override */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px; padding: 0; box-shadow: 0 4px 20px rgba(0,0,0,.15);
+    }
+    .leaflet-popup-content { margin: 0; width: 260px !important; }
+    .user-popup .leaflet-popup-content { width: auto !important; }
+    .leaflet-popup-tip { box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+
+    .station-popup { padding: 16px; }
+    .station-popup .station-name {
+      font-size: 14px; font-weight: 600; color: #1a1a1a;
+      margin-bottom: 2px; line-height: 1.3;
+    }
+    .station-popup .station-location {
+      font-size: 11px; color: #888; margin-bottom: 10px;
+      text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .station-popup .availability {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .station-popup .availability .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .station-popup .availability .count {
+      font-size: 15px; font-weight: 700; color: #1a1a1a;
+    }
+    .station-popup .availability .label {
+      font-size: 12px; color: #888;
+    }
+    .station-popup .bar-track {
+      width: 100%; height: 6px; background: #eee; border-radius: 3px;
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .station-popup .bar-fill {
+      height: 100%; border-radius: 3px; transition: width .3s;
+    }
+    .station-popup .distance {
+      font-size: 11px; color: #aaa; margin-bottom: 12px;
+    }
+    .station-popup .popup-btns { display: flex; gap: 8px; }
+    .station-popup .popup-btn {
+      flex: 1; padding: 10px; border: none; border-radius: 8px;
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all .15s; color: #fff;
+    }
+    .station-popup .popup-btn:disabled {
+      background: #e5e5e5; color: #999; cursor: not-allowed;
+    }
+    .popup-btn.btn-reserve { background: #22c55e; }
+    .popup-btn.btn-reserve:hover:not(:disabled) { background: #16a34a; }
+    .popup-btn.btn-return { background: #3b82f6; }
+    .popup-btn.btn-return:hover:not(:disabled) { background: #2563eb; }
+    .station-popup .popup-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+    }
+    .station-popup .popup-header .popup-actions {
+      display: flex; gap: 4px; flex-shrink: 0;
+    }
+    .station-popup .popup-action {
+      width: 28px; height: 28px; border: none; background: #f5f5f5;
+      border-radius: 6px; font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; color: #999;
+    }
+    .station-popup .popup-action:hover { background: #eee; color: #333; }
+    .station-popup .popup-action.confirming { background: #fef2f2; color: #ef4444; font-size: 10px; width: auto; padding: 0 6px; font-weight: 600; }
+
+    /* Rate limit toast */
+    .rate-toast {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      z-index: 2000; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;
+      padding: 12px 24px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; white-space: nowrap;
+    }
+    .rate-toast.show { display: block; }
+
+    /* Legend / filter bar */
+    .legend {
+      position: fixed; bottom: 24px; left: calc(340px + (100% - 340px) / 2); transform: translateX(-50%);
+      z-index: 1000;
+      background: #fff; border-radius: 12px; padding: 8px 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.15);
+      display: flex; gap: 4px; font-size: 12px; color: #444;
+      white-space: nowrap;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 5px; cursor: pointer;
+      padding: 6px 10px; border-radius: 8px; border: 1.5px solid transparent;
+      transition: all .15s; user-select: none;
+    }
+    .legend-item:hover { background: #f5f5f5; }
+    .legend-item.active { border-color: #ddd; background: #f9fafb; font-weight: 600; }
+    .legend-item.off { opacity: .35; }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.8);
+      box-shadow: 0 1px 2px rgba(0,0,0,.2);
+    }
+    @media (max-width: 600px) {
+      .header nav a:not(.api-link) { display: none; }
+      .header nav { gap: 10px; }
+      .header { padding: 0 12px; }
+      .legend { bottom: 48px; }
+      .sidebar {
+        width: 100%; transform: translateX(-100%);
+        transition: transform .25s ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      #map { left: 0; width: 100vw; }
+      .hamburger-mobile { display: flex !important; }
+      .legend { left: 50%; }
+      .legend {
+        bottom: 12px; padding: 6px 6px; gap: 2px;
+        border-radius: 10px; font-size: 11px;
+        max-width: calc(100vw - 24px);
+      }
+      .legend-item { padding: 5px 7px; gap: 4px; }
+      .legend-dot { width: 8px; height: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger hamburger-mobile" onclick="toggleSidebar()" id="hamburgerBtn" style="display:none">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="logo" style="cursor:pointer" onclick="showPanel('search')">Mi<span>Bici</span></div>
+    </div>
+    <nav>
+      <a href="#" onclick="openAdmin();return false">Agregar estaciones</a>
+      <a href="//localhost:8000/docs" target="_blank" class="api-link">API Docs</a>
+    </nav>
+  </div>
+
+  <div class="sidebar" id="sidebar">
+    <!-- Panel: Buscar estaciones cercanas -->
+    <div class="sidebar-panel active" id="panel-search">
+      <h3>Buscar estaciones cercanas</h3>
+      <div class="search-tabs">
+        <button class="search-tab" onclick="setSearchMode('gps')">
+          <span class="tab-icon">&#128205;</span> Mi ubicacion
+        </button>
+        <button class="search-tab" onclick="setSearchMode('draw')">
+          <span class="tab-icon">&#9997;</span> Dibujar zona
+        </button>
+        <button class="search-tab" onclick="setSearchMode('address')">
+          <span class="tab-icon">&#128270;</span> Direccion
+        </button>
+      </div>
+
+      <div class="search-tabs action-tabs" id="action-tabs" style="display:none">
+        <button class="search-tab active" onclick="setActionFilter('both')">
+          <span class="tab-icon">&#128260;</span> Ambas
+        </button>
+        <button class="search-tab" onclick="setActionFilter('reserve')">
+          <span class="tab-icon">&#128690;</span> Reservar
+        </button>
+        <button class="search-tab" onclick="setActionFilter('return')">
+          <span class="tab-icon">&#128229;</span> Entregar
+        </button>
+      </div>
+
+      <div class="search-mode" id="mode-address">
+        <div class="addr-wrap">
+          <input type="text" id="address-input" placeholder="Ej: Av. Chapultepec 200" autocomplete="off"
+            oninput="onAddrInput()" onkeydown="onAddrKey(event)">
+          <div class="addr-list" id="addr-list"></div>
+        </div>
+      </div>
+
+      <div class="search-mode" id="mode-draw">
+        <p class="mode-hint" id="draw-hint">Arrastra sobre el mapa para seleccionar una zona</p>
+        <button class="btn-clear" onclick="clearDrawing()" id="clear-draw-btn">Limpiar zona</button>
+      </div>
+
+      <div class="search-mode" id="mode-gps">
+      </div>
+
+      <div id="k-control" style="display:none">
+        <label>Cantidad de estaciones</label>
+        <input type="number" id="search-k" value="5" min="1" max="100">
+      </div>
+      <button class="btn btn-green" onclick="searchNearby()" id="search-btn" style="display:none">Buscar</button>
+      <div class="result-box" id="search-results"></div>
+    </div>
+
+    <!-- Panel: Editar estaciones -->
+    <div class="sidebar-panel" id="panel-manage">
+      <h3 id="manage-title">Crear estacion</h3>
+      <label>Nombre</label>
+      <input type="text" id="create-name" placeholder="Mi Estacion">
+      <label>Ubicacion</label>
+      <input type="text" id="create-location" placeholder="Centro, Guadalajara">
+      <label>Posicion en el mapa</label>
+      <button class="btn" id="pick-location-btn" onclick="startPickLocation()" style="background:#f5f5f5;color:#333;border:1.5px dashed #ccc;margin-top:0">
+        &#128205; Seleccionar en el mapa
+      </button>
+      <div id="pick-location-info" style="display:none;font-size:12px;color:#22c55e;margin-top:6px;font-weight:500"></div>
+      <input type="hidden" id="create-lat">
+      <input type="hidden" id="create-lon">
+      <div class="row-2" style="margin-top:12px">
+        <div><label>Slots totales</label><input type="number" id="create-slots" value="20" min="1"></div>
+        <div><label>Bicis disponibles</label><input type="number" id="create-bikes" value="10" min="0"></div>
+      </div>
+      <button class="btn btn-green" id="manage-submit" onclick="submitStation()">Crear estacion</button>
+      <div class="msg" id="create-msg"></div>
+    </div>
+
+  </div>
+
+  <div class="rate-toast" id="rate-toast">Haz excedido el numero de peticiones, por favor espera un minuto</div>
+  <div id="map"></div>
+  <div class="map-mode-toggle" id="map-mode-toggle">
+    <button id="mode-btn-move" class="active" onclick="setMapMode('move')">&#9995; Mover</button>
+    <button id="mode-btn-draw" onclick="setMapMode('draw')">&#9997; Dibujar</button>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item" data-filter="available" onclick="toggleFilter('available')">
+      <div class="legend-dot" style="background:#22c55e"></div> Disponible
+    </div>
+    <div class="legend-item" data-filter="few" onclick="toggleFilter('few')">
+      <div class="legend-dot" style="background:#f59e0b"></div> Pocas
+    </div>
+    <div class="legend-item" data-filter="empty" onclick="toggleFilter('empty')">
+      <div class="legend-dot" style="background:#ef4444"></div> Sin bicis
+    </div>
+    <div class="legend-item" data-filter="inactive" onclick="toggleFilter('inactive')">
+      <div class="legend-dot" style="background:#c4c4c4"></div> Inactiva
+    </div>
+  </div>
+
+  <!-- JS modules (load order matters) -->
+  <script src="/js/config.js"></script>
+  <script>
+    const map = L.map('map', { zoomControl: false }).setView(GDL, 14);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19,
+    }).addTo(map);
+  </script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/stations.js"></script>
+  <script src="/js/search.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
