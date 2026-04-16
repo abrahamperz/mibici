@@ -2,7 +2,7 @@
 
 **Herramientas utilizadas**:
 - **Claude Code** (Claude Opus) via CLI — implementacion, tests, CI/CD
-- **[GStack](https://github.com/garrytan/gstack)** — para la fase de diseno use GStack con su skill `/office-hours`. GStack fue creado por Garry Tan, principal partner y CEO de Y Combinator. Debati con el diferentes soluciones de arquitectura hasta que encontre algo que me gusto. La evidencia completa de esa sesion de diseno esta en [Evidencia-IA.md](Evidencia-IA.md).
+- **[GStack](https://github.com/garrytan/gstack)** — para la fase de diseño use GStack con su skill `/office-hours`. GStack fue creado por Garry Tan, principal partner y CEO de Y Combinator. Debati con el diferentes soluciones de arquitectura hasta que encontre algo que me gusto. La evidencia completa de esa sesion de diseño esta en [Evidencia-IA.md](Evidencia-IA.md).
 
 ## Que sugerencia de la IA rechace y por que?
 
@@ -33,11 +33,13 @@ Un nombre de estacion malicioso en el CSV (ej: `'); DROP TABLE stations; --`) ej
 
 ## Cual fue el prompt mas interesante que use?
 
-**Contexto: Diseno del test de concurrencia `search_under_mutation`.**
+**Contexto: Diseño del test de concurrencia `search_under_mutation`.**
 
-Durante la fase de diseno, le pedi a Claude que actuara como "cross-model perspective", un reviewer independiente que no habia visto ninguna conversacion previa. Esto genero la idea de un "live replay engine" que reproduce viajes reales de MIBICI a 60x velocidad.
+Durante la fase de diseño use `/office-hours` de GStack, que tiene una etapa de "Cross-Model Second Opinion": el skill lanza un sub-agente independiente (otra instancia de Claude sin contexto previo de nuestra conversacion) para obtener una perspectiva externa sobre el diseño. Esto evita el sesgo de confirmacion que tendria Claude defendiendo decisiones que el mismo me ayudo a tomar.
 
-No lo implemente (fuera de scope), pero influyo directamente en el diseno del test `test_search_under_mutation`: 15 writes (reservaciones) y 20 reads (busquedas espaciales) ejecutandose simultaneamente. Este patron simula exactamente lo que un replay engine produciria, mezclando lecturas y escrituras concurrentes para verificar que el sistema no produce errores 500 ni conteos negativos de bicicletas.
+Ese sub-agente, leyendo el diseño en frio, propuso la idea de un "live replay engine" que reproduce viajes reales de MIBICI a 60x velocidad a partir de los datos publicos de viajes.
+
+No lo implemente (fuera de scope), pero influyo directamente en el diseño del test `test_search_under_mutation`: 15 writes (reservaciones) y 20 reads (busquedas espaciales) ejecutandose simultaneamente. Este patron simula exactamente lo que un replay engine produciria, mezclando lecturas y escrituras concurrentes para verificar que el sistema no produce errores 500 ni conteos negativos de bicicletas.
 
 ---
 

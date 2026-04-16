@@ -2,12 +2,14 @@
 
 REST API para el sistema de bicicletas compartidas de Guadalajara con busqueda espacial, disponibilidad en tiempo real, y seguridad de concurrencia. Construido para 10,000 estaciones y 1,000,000 MAU.
 
+[![Demo MIBICI](https://img.youtube.com/vi/63LACj1p2MQ/maxresdefault.jpg)](https://youtu.be/63LACj1p2MQ)
+
 ## Indice
 
 1. **[Documentacion de Arquitectura](docs/arquitectura.md)** — Diagrama, decisiones tecnicas (PostGIS, advisory locks, monolito, FastAPI async), alternativas consideradas, tech stack
 2. **[Instrucciones de Setup](docs/setup.md)** — Como ejecutar con Docker, endpoints de la API, ejemplos de uso
 3. **[Pruebas y Escalabilidad](docs/tests.md)** — 11 tests automatizados (race conditions, estres espacial, integracion), resultados, como escala el sistema
-4. **[Evidencia de IA](docs/Evidencia-IA.md)** — Sesion de diseno con [GStack](https://github.com/garrytan/gstack) (Garry Tan, CEO de Y Combinator), debate de alternativas, documento de diseno aprobado
+4. **[Evidencia de IA](docs/Evidencia-IA.md)** — Sesion de diseño con [GStack](https://github.com/garrytan/gstack) (Garry Tan, CEO de Y Combinator), debate de alternativas, documento de diseño aprobado
 5. **[Reporte de Uso de IA](docs/ai-report.md)** — Sugerencia rechazada, alucinacion corregida, prompt mas interesante
 
 ## Quick Start
