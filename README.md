@@ -21,12 +21,18 @@ REST API para el sistema de bicicletas compartidas de Guadalajara con busqueda e
 ## Quick Start
 
 ```bash
-git clone https://github.com/abrahamperz/mibici.git
+git clone https://github.com/array101/mibici.git
 cd mibici
 docker compose up -d --build --wait
 ```
 
-Eso es todo. Las migraciones y el seed de datos (10,000 estaciones) corren automaticamente al iniciar el contenedor.
+Eso es todo. Las migraciones y el seed de datos (10,000 estaciones) corren automaticamente al iniciar el contenedor. En el mapa solo se ven las ~383 estaciones reales del CSV oficial de MIBICI; las demas son sinteticas para cumplir el requisito de escala del challenge y se filtran del UI con `real_only=true`.
+
+Opcional, correr tests automatizados:
+
+```bash
+act push
+```
 
 | Servicio | URL |
 |----------|-----|
