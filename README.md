@@ -21,7 +21,7 @@ REST API para el sistema de bicicletas compartidas de Guadalajara con busqueda e
 ## Quick Start
 
 ```bash
-git clone https://github.com/array101/mibici.git
+git clone https://github.com/abrahamperz/mibici.git
 cd mibici
 docker compose up -d --build --wait
 ```
