@@ -174,6 +174,7 @@ function gpsLocate() {
       searchLat = pos.coords.latitude;
       searchLon = pos.coords.longitude;
       map.setView([searchLat, searchLon], 15);
+      showUserLocation(searchLat, searchLon);
       resolve(true);
     }, () => {
       resolve(false);

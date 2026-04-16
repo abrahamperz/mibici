@@ -84,6 +84,7 @@ async function loadStations() {
     const size = dotSize();
     stations.filter(passesFilter).forEach(s => {
       const m = L.marker([s.latitude, s.longitude], { icon: createIcon(markerColor(s), size) });
+      m.stationId = s.id;
       m.bindPopup(stationPopupHtml(s), { closeButton: false });
       markers.addLayer(m);
     });
@@ -96,16 +97,14 @@ async function refreshStation(id) {
   try {
     const resp = await fetch(`/api/stations/${id}`, { headers: API_HEADERS });
     if (!resp.ok) return;
-    const s = resp.headers.get('content-type')?.includes('json') ? await resp.json() : null;
-    if (!s) return;
+    const s = await resp.json();
     markers.eachLayer(m => {
-      const pos = m.getLatLng();
-      if (Math.abs(pos.lat - s.latitude) < 0.0001 && Math.abs(pos.lng - s.longitude) < 0.0001) {
+      if (m.stationId === id) {
         m.setIcon(createIcon(markerColor(s), dotSize()));
         m.setPopupContent(stationPopupHtml(s));
       }
     });
-  } catch (e) { /* silent */ }
+  } catch (e) { console.error('refreshStation error:', e); }
 }
 
 async function reserveBike(id, btn) {
@@ -152,6 +151,7 @@ function showSearchResults(stations) {
   const size = dotSize();
   stations.forEach(s => {
     const m = L.marker([s.latitude, s.longitude], { icon: createIcon(markerColor(s), size) });
+    m.stationId = s.id;
     m.bindPopup(stationPopupHtml(s), { closeButton: false });
     markers.addLayer(m);
   });
@@ -174,25 +174,33 @@ function appendClearBtn() {
 }
 
 /* ── Geolocation ── */
+function showUserLocation(lat, lon) {
+  if (userMarker) {
+    userMarker.setLatLng([lat, lon]);
+  } else {
+    userMarker = L.marker([lat, lon], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="
+          width:16px;height:16px;border-radius:50%;
+          background:#3b82f6;
+          border:3px solid #fff;
+          box-shadow:0 0 0 3px rgba(59,130,246,.3), 0 2px 6px rgba(0,0,0,.3);
+        "></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      }),
+      zIndexOffset: 1000,
+    }).addTo(map).bindPopup('<div style="font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;color:#3b82f6;padding:4px 10px;white-space:nowrap">&#128205; Estas aqui</div>', { closeButton: false, className: 'user-popup' });
+  }
+  userMarker.openPopup();
+}
+
 if (navigator.geolocation) {
   navigator.geolocation.getCurrentPosition(
     pos => {
-      const { latitude, longitude } = pos.coords;
-      map.setView([latitude, longitude], 15);
-      userMarker = L.marker([latitude, longitude], {
-        icon: L.divIcon({
-          className: '',
-          html: `<div style="
-            width:16px;height:16px;border-radius:50%;
-            background:#3b82f6;
-            border:3px solid #fff;
-            box-shadow:0 0 0 3px rgba(59,130,246,.3), 0 2px 6px rgba(0,0,0,.3);
-          "></div>`,
-          iconSize: [16, 16],
-          iconAnchor: [8, 8],
-        }),
-        zIndexOffset: 1000,
-      }).addTo(map).bindPopup('<div style="font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:600;color:#3b82f6;padding:4px 10px;white-space:nowrap">&#128205; Estas aqui</div>', { closeButton: false, className: 'user-popup' }).openPopup();
+      map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+      showUserLocation(pos.coords.latitude, pos.coords.longitude);
     },
     () => {},
     { enableHighAccuracy: true, timeout: 5000 }
