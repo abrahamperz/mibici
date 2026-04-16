@@ -2,7 +2,13 @@
 
 REST API para el sistema de bicicletas compartidas de Guadalajara con busqueda espacial, disponibilidad en tiempo real, y seguridad de concurrencia. Construido para 10,000 estaciones y 1,000,000 MAU.
 
-[![Demo MIBICI](https://img.youtube.com/vi/63LACj1p2MQ/maxresdefault.jpg)](https://youtu.be/63LACj1p2MQ)
+<p align="center">
+  <a href="https://youtu.be/63LACj1p2MQ">
+    <img src="https://img.youtube.com/vi/63LACj1p2MQ/maxresdefault.jpg" width="500" alt="Demo MIBICI" />
+  </a>
+  <br>
+  <em>Demo en video &rarr; click para reproducir</em>
+</p>
 
 ## Indice
 
